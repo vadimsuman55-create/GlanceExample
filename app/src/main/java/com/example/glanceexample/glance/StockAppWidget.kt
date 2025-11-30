@@ -1,8 +1,9 @@
 package com.example.glanceexample.glance
 
 import android.content.Context
-import androidx.glance.text.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.unit.dp
 import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
@@ -13,12 +14,17 @@ import androidx.glance.background
 import androidx.glance.layout.Column
 import androidx.glance.layout.fillMaxSize
 import androidx.glance.layout.padding
+import androidx.glance.text.Text
+import androidx.glance.text.TextStyle
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import java.time.Duration
+import java.util.Locale
+import androidx.compose.ui.unit.sp
+
 
 class StockAppWidget : GlanceAppWidget() {
     private var job: Job? = null
@@ -39,7 +45,6 @@ class StockAppWidget : GlanceAppWidget() {
         return CoroutineScope(Dispatchers.Default).launch {
             while (true) {
                 PriceDataRepo.update()
-
                 delay(timeInterval)
             }
         }
@@ -47,12 +52,51 @@ class StockAppWidget : GlanceAppWidget() {
 
     @Composable
     fun GlanceContent() {
-        Column(modifier = GlanceModifier
-            .fillMaxSize()
-            .background(GlanceTheme.colors.background)
-            .padding(8.dp)
+        val stateCount by PriceDataRepo.currentPrice.collectAsState()
+        Small(stateCount)
+    }
+
+    @Composable
+    private fun StockDisplay(stateCount: Float) {
+        val color = if (PriceDataRepo.change > 0) {
+            GlanceTheme.colors.primary
+        } else {
+            GlanceTheme.colors.error
+        }
+        val textStyle = TextStyle(
+            fontSize = 20.sp,
+            fontWeight = androidx.glance.text.FontWeight.Bold,
+            color = color
+        )
+
+        Text(
+            text = PriceDataRepo.ticker,
+            style = TextStyle(
+                fontSize = 24.sp,
+                fontWeight = androidx.glance.text.FontWeight.Bold
+            )
+        )
+
+        Text(
+            text = String.format(Locale.getDefault(), "%.2f", stateCount),
+            style = textStyle
+        )
+
+        Text(
+            text = "${PriceDataRepo.change} %",
+            style = textStyle
+        )
+    }
+
+    @Composable
+    private fun Small(stateCount: Float) {
+        Column(
+            modifier = GlanceModifier
+                .fillMaxSize()
+                .background(GlanceTheme.colors.background)
+                .padding(8.dp)
         ) {
-            Text("Demo")
+            StockDisplay(stateCount)
         }
     }
 }
